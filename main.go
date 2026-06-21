@@ -25,10 +25,10 @@ func main() {
 	}
 
 	nw := aligners.Nw{
-		Match:    1,
-		Mismatch: -1,
-		Gap:      -2,
+		Substitution: &aligners.Blosum62{},
+		Gap:          aligners.NewLinearGap(-2),
 	}
 
-	nw.Align(seqA, seqB)
+	alignedA, alignedB := nw.Align(seqA, seqB)
+	helpers.VisualizeAlignedSeqs(alignedA, alignedB, config.ChunkSize)
 }

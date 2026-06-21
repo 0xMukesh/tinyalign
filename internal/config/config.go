@@ -29,11 +29,13 @@ func (af *arrayFlag) String() string {
 type Config struct {
 	FastaFiles []string
 	Algorithm  TinyAlignAlgorithm
+	ChunkSize  int
 }
 
 var (
 	rawFastaFiles arrayFlag
 	rawAlgorithm  string
+	chunkSize     int
 
 	algorithmNameMapping = map[string]TinyAlignAlgorithm{
 		"nw": AlgorithmNw,
@@ -44,6 +46,7 @@ var (
 func Parse() (Config, error) {
 	flag.Var(&rawFastaFiles, "fasta", "path of the fasta files which need to be aligned")
 	flag.StringVar(&rawAlgorithm, "algorithm", "", "algorithm which is to be used for sequence alignment")
+	flag.IntVar(&chunkSize, "chunk-size", 60, "number of characters of alignment per row")
 	flag.Parse()
 
 	if len(rawFastaFiles) != 2 {
@@ -53,11 +56,12 @@ func Parse() (Config, error) {
 	validAlgorithmOptions := strings.Join(slices.Collect(maps.Keys(algorithmNameMapping)), ", ")
 	algorithm, ok := algorithmNameMapping[rawAlgorithm]
 	if !ok {
-		return Config{}, fmt.Errorf("unknown algorithm %s. valid options: %s\n", validAlgorithmOptions)
+		return Config{}, fmt.Errorf("unknown algorithm %s. valid options: %s\n", rawAlgorithm, validAlgorithmOptions)
 	}
 
 	return Config{
 		FastaFiles: []string(rawFastaFiles),
 		Algorithm:  algorithm,
+		ChunkSize:  chunkSize,
 	}, nil
 }

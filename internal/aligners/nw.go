@@ -4,12 +4,6 @@ import (
 	"github.com/0xmukesh/tinyalign/internal/helpers"
 )
 
-type Nw struct {
-	Match    int
-	Mismatch int
-	Gap      int
-}
-
 type tracebackDirection int
 
 const (
@@ -19,6 +13,11 @@ const (
 	dirEnd
 )
 
+type Nw struct {
+	Substitution SubstitutionMatrix
+	Gap          GapPenalty
+}
+
 func (nw *Nw) Align(seqA, seqB string) (string, string) {
 	nRows := len(seqA) + 1
 	nCols := len(seqB) + 1
@@ -27,10 +26,10 @@ func (nw *Nw) Align(seqA, seqB string) (string, string) {
 	tracebackMatrix := helpers.BuildMatrix[tracebackDirection](nRows, nCols)
 
 	for i := range scoringMatrix {
-		scoringMatrix[i][0] = i * nw.Gap
+		scoringMatrix[i][0] = nw.Gap.Penalty(i)
 	}
 	for j := range scoringMatrix[0] {
-		scoringMatrix[0][j] = j * nw.Gap
+		scoringMatrix[0][j] = nw.Gap.Penalty(j)
 	}
 
 	for i := range tracebackMatrix {
@@ -43,16 +42,9 @@ func (nw *Nw) Align(seqA, seqB string) (string, string) {
 
 	for i := 1; i < len(scoringMatrix); i++ {
 		for j := 1; j < len(scoringMatrix[0]); j++ {
-			var S int
-			if seqA[i-1] == seqB[j-1] {
-				S = nw.Match
-			} else {
-				S = nw.Mismatch
-			}
-
-			diag := scoringMatrix[i-1][j-1] + S
-			left := scoringMatrix[i][j-1] + nw.Gap
-			up := scoringMatrix[i-1][j] + nw.Gap
+			diag := scoringMatrix[i-1][j-1] + nw.Substitution.Score(seqA[i-1], seqB[j-1])
+			left := scoringMatrix[i][j-1] + nw.Gap.Penalty(1)
+			up := scoringMatrix[i-1][j] + nw.Gap.Penalty(1)
 			score := max(diag, left, up)
 
 			switch score {
