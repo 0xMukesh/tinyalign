@@ -9,26 +9,32 @@ import (
 )
 
 func main() {
-	config, err := config.Parse()
+	cfg, err := config.Parse()
 	if err != nil {
 		log.Fatalf("failed to parse args: %s", err)
 	}
 
-	seqA, err := helpers.ParseFastaFile(config.FastaFiles[0])
+	seqA, err := helpers.ParseFastaFile(cfg.FastaFiles[0])
 	if err != nil {
-		log.Fatalf("failed to parse 1st fasta file: %s", err)
+		log.Fatalf("failed to parse fasta file: %s", err)
 	}
 
-	seqB, err := helpers.ParseFastaFile(config.FastaFiles[1])
+	seqB, err := helpers.ParseFastaFile(cfg.FastaFiles[1])
 	if err != nil {
-		log.Fatalf("failed to parse 2nd fasta file: %s", err)
+		log.Fatalf("failed to parse fasta file: %s", err)
 	}
 
-	nw := aligners.Nw{
-		Substitution: &aligners.Blosum62{},
-		Gap:          aligners.NewLinearGap(-2),
+	var result aligners.AlignmentResult
+	switch cfg.Algorithm {
+	case config.AlgorithmNw:
+		nw := aligners.NewNw(&aligners.Blosum62{}, aligners.NewLinearGap(-2))
+		result = nw.Align(seqA, seqB)
+	case config.AlgorithmSw:
+		sw := aligners.NewSw(&aligners.Blosum62{}, aligners.NewLinearGap(-2))
+		result = sw.Align(seqA, seqB)
+	default:
+		log.Fatalf("invalid algorithm: %d\n", cfg.Algorithm)
 	}
 
-	alignedA, alignedB := nw.Align(seqA, seqB)
-	helpers.VisualizeAlignedSeqs(alignedA, alignedB, config.ChunkSize)
+	result.Visualize(cfg.ChunkSize)
 }

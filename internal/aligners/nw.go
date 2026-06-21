@@ -1,96 +1,58 @@
 package aligners
 
-import (
-	"github.com/0xmukesh/tinyalign/internal/helpers"
-)
-
-type tracebackDirection int
-
-const (
-	dirDiag tracebackDirection = iota
-	dirLeft
-	dirUp
-	dirEnd
-)
-
 type Nw struct {
 	Substitution SubstitutionMatrix
 	Gap          GapPenalty
 }
 
-func (nw *Nw) Align(seqA, seqB string) (string, string) {
-	nRows := len(seqA) + 1
-	nCols := len(seqB) + 1
-
-	scoringMatrix := helpers.BuildMatrix[int](nRows, nCols)
-	tracebackMatrix := helpers.BuildMatrix[tracebackDirection](nRows, nCols)
-
-	for i := range scoringMatrix {
-		scoringMatrix[i][0] = nw.Gap.Penalty(i)
+func NewNw(substitution SubstitutionMatrix, gap GapPenalty) *Nw {
+	return &Nw{
+		Substitution: substitution,
+		Gap:          gap,
 	}
-	for j := range scoringMatrix[0] {
-		scoringMatrix[0][j] = nw.Gap.Penalty(j)
+}
+
+func (nw *Nw) Align(seqA, seqB string) AlignmentResult {
+	return dpAlign(dpConfig{
+		initMatrix:     nw.initMatrix,
+		recurrence:     nw.recurrence,
+		tracebackStart: nw.tracebackStart,
+		tracebackDone:  nw.tracebackDone,
+		substitution:   nw.Substitution,
+		gap:            nw.Gap,
+	}, seqA, seqB)
+}
+
+func (nw *Nw) initMatrix(i, j int) int {
+	if i == 0 && j != 0 {
+		return nw.Gap.Penalty(j)
+	} else if i != 0 && j == 0 {
+		return nw.Gap.Penalty(i)
+	} else {
+		return 0
 	}
+}
 
-	for i := range tracebackMatrix {
-		tracebackMatrix[i][0] = dirUp
-	}
-	for j := range tracebackMatrix[0] {
-		tracebackMatrix[0][j] = dirLeft
-	}
-	tracebackMatrix[0][0] = dirEnd
+func (nw *Nw) recurrence(diag, left, up int) (int, tracebackDirection) {
+	score := max(diag, left, up)
+	var dir tracebackDirection
 
-	for i := 1; i < len(scoringMatrix); i++ {
-		for j := 1; j < len(scoringMatrix[0]); j++ {
-			diag := scoringMatrix[i-1][j-1] + nw.Substitution.Score(seqA[i-1], seqB[j-1])
-			left := scoringMatrix[i][j-1] + nw.Gap.Penalty(1)
-			up := scoringMatrix[i-1][j] + nw.Gap.Penalty(1)
-			score := max(diag, left, up)
-
-			switch score {
-			case diag:
-				tracebackMatrix[i][j] = dirDiag
-			case left:
-				tracebackMatrix[i][j] = dirLeft
-			case up:
-				tracebackMatrix[i][j] = dirUp
-			}
-
-			scoringMatrix[i][j] = score
-		}
-	}
-
-	toBreak := false
-	i := len(tracebackMatrix) - 1
-	j := len(tracebackMatrix[0]) - 1
-
-	maxLen := len(seqA) + len(seqB)
-	bufA := make([]byte, maxLen)
-	bufB := make([]byte, maxLen)
-	pos := maxLen - 1
-
-	for !toBreak {
-		switch tracebackMatrix[i][j] {
-		case dirDiag:
-			bufA[pos] = seqA[i-1]
-			bufB[pos] = seqB[j-1]
-			i--
-			j--
-			pos--
-		case dirLeft:
-			bufA[pos] = '-'
-			bufB[pos] = seqB[j-1]
-			j--
-			pos--
-		case dirUp:
-			bufA[pos] = seqA[i-1]
-			bufB[pos] = '-'
-			i--
-			pos--
-		case dirEnd:
-			toBreak = true
-		}
+	switch score {
+	case diag:
+		dir = dirDiag
+	case left:
+		dir = dirLeft
+	case up:
+		dir = dirUp
 	}
 
-	return string(bufA[pos+1:]), string(bufB[pos+1:])
+	return score, dir
+}
+
+func (nw *Nw) tracebackStart(scoring [][]int) (i, j int) {
+	return len(scoring) - 1, len(scoring[0]) - 1
+}
+
+func (nw *Nw) tracebackDone(i, j, _ int) bool {
+	return i == 0 && j == 0
 }
