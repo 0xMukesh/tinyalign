@@ -65,6 +65,8 @@ func dpTraceback(
 	return aligners.AlignmentResult{
 		SeqA:            string(bufA[pos+1:]),
 		SeqB:            string(bufB[pos+1:]),
+		StartA:          i,
+		StartB:          j,
 		Score:           score,
 		Identities:      identities,
 		Gaps:            gaps,

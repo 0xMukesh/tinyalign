@@ -3,6 +3,7 @@ package config
 import (
 	"flag"
 	"fmt"
+	"io"
 	"maps"
 	"os"
 	"slices"
@@ -28,6 +29,7 @@ type Config struct {
 	SubstitutionMatrix string
 	GapPenalty         int
 	AlignVizWidth      int
+	Out                io.Writer
 }
 
 var (
@@ -37,6 +39,7 @@ var (
 	substitutionMatrix    string
 	gapPenalty            int
 	alignVizWidth         int
+	rawOut                string
 
 	algorithmNameMapping = map[string]TinyAlignAlgorithm{
 		"nw": AlgorithmNw,
@@ -56,6 +59,7 @@ func Parse() (*Config, error) {
 	flag.StringVar(&substitutionMatrix, "matrix", "", fmt.Sprintf("name of the substitution matrix which is to be used. options: %s", validSubstitutionMatrixOptionsStr))
 	flag.IntVar(&gapPenalty, "gap-penalty", -1, "value which is to be used for gap penalty")
 	flag.IntVar(&alignVizWidth, "align-viz-width", 60, "number of characters per row in alignment visualization")
+	flag.StringVar(&rawOut, "out", "stdout", "out is the where the final alignment result would be written to. it can either be `stdout` or file path")
 	flag.Parse()
 
 	if seqAPath == "" {
@@ -68,7 +72,7 @@ func Parse() (*Config, error) {
 	for _, path := range []string{seqAPath, seqBPath} {
 		if _, err := os.Stat(path); err != nil {
 			if os.IsNotExist(err) {
-				return nil, fmt.Errorf("%s path doesn't exist", path)
+				return nil, fmt.Errorf("file does not exist at %s", path)
 			}
 
 			return nil, fmt.Errorf("failed to open %s: %s", path, err)
@@ -117,6 +121,18 @@ func Parse() (*Config, error) {
 		}
 	}
 
+	var outWriter io.Writer
+	if rawOut == "stdout" {
+		outWriter = os.Stdout
+	} else {
+		f, err := os.OpenFile(rawOut, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open file: %s", err)
+		}
+
+		outWriter = f
+	}
+
 	return &Config{
 		SeqAPath:           seqAPath,
 		SeqBPath:           seqBPath,
@@ -126,5 +142,6 @@ func Parse() (*Config, error) {
 		SubstitutionMatrix: substitutionMatrix,
 		GapPenalty:         gapPenalty,
 		AlignVizWidth:      alignVizWidth,
+		Out:                outWriter,
 	}, nil
 }

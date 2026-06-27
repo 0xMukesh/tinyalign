@@ -2,26 +2,31 @@ package aligners
 
 import (
 	"fmt"
+	"io"
 	"strings"
 )
 
 type AlignmentResult struct {
 	SeqA            string
 	SeqB            string
+	StartA          int
+	StartB          int
 	Score           int
 	Identities      int
 	Gaps            int
 	AlignmentLength int
 }
 
-func (ar AlignmentResult) Visualize(vizWidth int) {
+func (ar AlignmentResult) Visualize(w io.Writer, vizWidth int) {
 	i := 0
-	startA := 0
-	startB := 0
+	posA := ar.StartA
+	posB := ar.StartB
 
-	fmt.Printf("Identities: %d/%d\n", ar.Identities, ar.AlignmentLength)
-	fmt.Printf("Gaps: %d/%d\n", ar.Gaps, ar.AlignmentLength)
-	fmt.Printf("Score: %d\n\n", ar.Score)
+	var header []byte
+	header = fmt.Appendf(header, "Identities: %d/%d\n", ar.Identities, ar.AlignmentLength)
+	header = fmt.Appendf(header, "Gaps: %d/%d\n", ar.Gaps, ar.AlignmentLength)
+	header = fmt.Appendf(header, "Score: %d\n\n", ar.Score)
+	w.Write(header)
 
 	for i < len(ar.SeqA) {
 		var sb strings.Builder
@@ -32,21 +37,21 @@ func (ar AlignmentResult) Visualize(vizWidth int) {
 		chunkB := ar.SeqB[chunkStart:chunkEnd]
 
 		matchLine, countA, countB := ar.buildMatchLine(chunkA, chunkB)
-		endA := startA + countA - 1
-		endB := startB + countB - 1
+		endA := posA + countA - 1
+		endB := posB + countB - 1
 
-		fmt.Fprintf(&sb, "Query %8d %s %d\n", startA, chunkA, endA)
+		fmt.Fprintf(&sb, "Query %8d %s %d\n", posA, chunkA, endA)
 		fmt.Fprintf(&sb, "%s\n", matchLine)
-		fmt.Fprintf(&sb, "Sbjct %8d %s %d", startB, chunkB, endB)
+		fmt.Fprintf(&sb, "Sbjct %8d %s %d\n", posB, chunkB, endB)
 		if i+vizWidth < len(ar.SeqA) {
 			sb.WriteString("\n\n")
 		}
 
-		fmt.Println(sb.String())
+		w.Write([]byte(sb.String()))
 
 		i += vizWidth
-		startA = endA
-		startB = endB
+		posA = endA
+		posB = endB
 	}
 }
 

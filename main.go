@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
+	"github.com/0xmukesh/tinyalign/internal/algorithms"
 	"github.com/0xmukesh/tinyalign/internal/aligners"
-	"github.com/0xmukesh/tinyalign/internal/aligners/algorithms"
 	"github.com/0xmukesh/tinyalign/internal/config"
 	"github.com/0xmukesh/tinyalign/internal/helpers"
 )
@@ -45,5 +45,5 @@ func main() {
 		result = sw.Align(seqA, seqB)
 	}
 
-	result.Visualize(cfg.AlignVizWidth)
+	result.Visualize(cfg.Out, cfg.AlignVizWidth)
 }
