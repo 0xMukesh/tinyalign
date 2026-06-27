@@ -1,5 +1,12 @@
 package aligners
 
+import (
+	"fmt"
+	"maps"
+	"slices"
+	"strings"
+)
+
 type SubstitutionMatrix interface {
 	Score(a, b byte) int
 }
@@ -24,31 +31,30 @@ func (n *NaiveSubstitution) Score(a, b byte) int {
 	return n.Mismatch
 }
 
-type Blosum62 struct{}
-
-func (b *Blosum62) Score(a, c byte) int {
-	score, ok := blosum62Table[[2]byte{a, c}]
-	if ok {
-		return score
-	}
-
-	score, ok = blosum62Table[[2]byte{c, a}]
-	if ok {
-		return score
-	}
-
-	return 0
+type FromMatrix struct {
+	Name string
 }
 
-type Pam250 struct{}
+func NewFromMatrix(name string) (*FromMatrix, error) {
+	name = strings.ToLower(name)
+	if _, ok := SubstitutionMatrixNameMapping[name]; !ok {
+		validOptions := slices.Collect(maps.Keys(SubstitutionMatrixNameMapping))
+		return nil, fmt.Errorf("invalid substitution matrix name: %s. valid options: %s", name, strings.Join(validOptions, ", "))
+	}
 
-func (p *Pam250) Score(a, b byte) int {
-	score, ok := pam250Table[[2]byte{a, b}]
+	return &FromMatrix{
+		Name: name,
+	}, nil
+}
+
+func (fm *FromMatrix) Score(a, b byte) int {
+	table := SubstitutionMatrixNameMapping[fm.Name]
+	score, ok := table[[2]byte{a, b}]
 	if ok {
 		return score
 	}
 
-	score, ok = pam250Table[[2]byte{a, b}]
+	score, ok = table[[2]byte{b, a}]
 	if ok {
 		return score
 	}

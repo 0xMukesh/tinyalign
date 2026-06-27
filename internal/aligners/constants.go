@@ -1,5 +1,10 @@
 package aligners
 
+var SubstitutionMatrixNameMapping = map[string]map[[2]byte]int{
+	"blosum62": blosum62Table,
+	"pam250":   pam250Table,
+}
+
 var blosum62Table = map[[2]byte]int{
 	{'A', 'A'}: 4,
 	{'A', 'C'}: 0,

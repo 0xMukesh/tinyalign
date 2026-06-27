@@ -24,6 +24,7 @@ func PrintMatrix[T Number](matrix [][]T) {
 		for _, elem := range row {
 			fmt.Printf("%5v ", elem)
 		}
+
 		fmt.Println()
 	}
 }

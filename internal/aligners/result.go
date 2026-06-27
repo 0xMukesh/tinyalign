@@ -14,7 +14,7 @@ type AlignmentResult struct {
 	AlignmentLength int
 }
 
-func (ar AlignmentResult) Visualize(chunkSize int) {
+func (ar AlignmentResult) Visualize(vizWidth int) {
 	i := 0
 	startA := 0
 	startB := 0
@@ -27,7 +27,7 @@ func (ar AlignmentResult) Visualize(chunkSize int) {
 		var sb strings.Builder
 
 		chunkStart := i
-		chunkEnd := min(i+chunkSize, len(ar.SeqA))
+		chunkEnd := min(i+vizWidth, len(ar.SeqA))
 		chunkA := ar.SeqA[chunkStart:chunkEnd]
 		chunkB := ar.SeqB[chunkStart:chunkEnd]
 
@@ -38,13 +38,13 @@ func (ar AlignmentResult) Visualize(chunkSize int) {
 		fmt.Fprintf(&sb, "Query %8d %s %d\n", startA, chunkA, endA)
 		fmt.Fprintf(&sb, "%s\n", matchLine)
 		fmt.Fprintf(&sb, "Sbjct %8d %s %d", startB, chunkB, endB)
-		if i+chunkSize < len(ar.SeqA) {
+		if i+vizWidth < len(ar.SeqA) {
 			sb.WriteString("\n\n")
 		}
 
 		fmt.Println(sb.String())
 
-		i += chunkSize
+		i += vizWidth
 		startA = endA
 		startB = endB
 	}
@@ -59,6 +59,8 @@ func (ar AlignmentResult) buildMatchLine(chunkA, chunkB string) (string, int, in
 	for j := 0; j < len(chunkA); j++ {
 		if chunkA[j] == chunkB[j] {
 			fmt.Fprintf(&sb, "|")
+		} else if chunkA[j] != '-' && chunkB[j] != '-' {
+			fmt.Fprintf(&sb, ".")
 		} else {
 			fmt.Fprintf(&sb, " ")
 		}
